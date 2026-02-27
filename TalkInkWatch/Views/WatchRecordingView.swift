@@ -5,42 +5,42 @@ struct WatchRecordingView: View {
     @EnvironmentObject var sessionManager: WatchSessionManager
 
     var body: some View {
-        VStack(spacing: 12) {
-            // Status icon
-            Image(systemName: recordingService.isRecording ? "waveform.circle.fill" : "mic.circle.fill")
-                .font(.system(size: 44))
-                .foregroundStyle(recordingService.isRecording ? .red : Color.accentColor)
-                .symbolEffect(.variableColor, isActive: recordingService.isRecording)
-
-            // Duration or status
+        VStack(spacing: 16) {
             if recordingService.isRecording {
+                // Recording state: show duration + stop button
                 Text(formatDuration(recordingService.duration))
-                    .font(.system(.title3, design: .monospaced))
+                    .font(.system(.title2, design: .monospaced))
+
+                Button {
+                    stopAndTransfer()
+                } label: {
+                    Image(systemName: "stop.circle.fill")
+                        .font(.system(size: 56))
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
             } else if sessionManager.isTransferring {
+                // Transferring state
                 ProgressView()
-                Text("Sending...")
+                    .scaleEffect(1.2)
+                Text("Sending to iPhone...")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
+                // Idle state: show record button
                 Text("Tap to Record")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
 
-            // Record/Stop button
-            Button {
-                if recordingService.isRecording {
-                    stopAndTransfer()
-                } else {
+                Button {
                     recordingService.startRecording()
+                } label: {
+                    Image(systemName: "record.circle.fill")
+                        .font(.system(size: 56))
+                        .foregroundStyle(.red)
                 }
-            } label: {
-                Image(systemName: recordingService.isRecording ? "stop.fill" : "record.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(recordingService.isRecording ? .red : Color.accentColor)
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-            .disabled(sessionManager.isTransferring)
         }
         .navigationTitle("TalkInk")
     }

@@ -3,24 +3,26 @@ import Combine
 
 /// Manages WatchConnectivity session on the iPhone side.
 /// Receives audio files from Apple Watch and triggers transcription pipeline.
-@MainActor
-final class PhoneSessionManager: NSObject, ObservableObject {
-    @Published var isWatchReachable = false
-    @Published var isTransferring = false
+final class PhoneSessionManager: NSObject, ObservableObject, @unchecked Sendable {
+    @MainActor @Published var isWatchReachable = false
+    @MainActor @Published var isTransferring = false
+    @MainActor @Published var lastReceivedFile: String?
 
     private var session: WCSession?
-    var onAudioReceived: ((URL) -> Void)?
+    @MainActor var onAudioReceived: (@Sendable (URL) -> Void)?
 
     override init() {
         super.init()
         if WCSession.isSupported() {
-            session = WCSession.default
-            session?.delegate = self
-            session?.activate()
+            let wc = WCSession.default
+            wc.delegate = self
+            wc.activate()
+            session = wc
         }
     }
 
     /// Send a message to the Watch (e.g., to start/stop recording).
+    @MainActor
     func sendCommand(_ command: String) {
         guard let session, session.isReachable else { return }
         session.sendMessage(["command": command], replyHandler: nil)
@@ -28,42 +30,54 @@ final class PhoneSessionManager: NSObject, ObservableObject {
 }
 
 extension PhoneSessionManager: WCSessionDelegate {
-    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         let reachable = session.isReachable
+        print("[PhoneSession] Activated: \(activationState.rawValue), reachable: \(reachable), error: \(String(describing: error))")
         Task { @MainActor in
-            isWatchReachable = reachable
+            self.isWatchReachable = reachable
         }
     }
 
-    nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
-    nonisolated func sessionDidDeactivate(_ session: WCSession) {
+    func sessionDidBecomeInactive(_ session: WCSession) {
+        print("[PhoneSession] Session became inactive")
+    }
+
+    func sessionDidDeactivate(_ session: WCSession) {
+        print("[PhoneSession] Session deactivated, reactivating...")
         session.activate()
     }
 
-    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+    func sessionReachabilityDidChange(_ session: WCSession) {
         let reachable = session.isReachable
+        print("[PhoneSession] Reachability changed: \(reachable)")
         Task { @MainActor in
-            isWatchReachable = reachable
+            self.isWatchReachable = reachable
         }
     }
 
     /// Receive audio file transferred from Apple Watch.
-    nonisolated func session(_ session: WCSession, didReceive file: WCSessionFile) {
+    func session(_ session: WCSession, didReceive file: WCSessionFile) {
+        print("[PhoneSession] Received file: \(file.fileURL.lastPathComponent)")
+        print("[PhoneSession] Metadata: \(String(describing: file.metadata))")
+
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let destURL = docs.appendingPathComponent(file.fileURL.lastPathComponent)
+        let fileName = "watch_\(UUID().uuidString).m4a"
+        let destURL = docs.appendingPathComponent(fileName)
 
         do {
             if FileManager.default.fileExists(atPath: destURL.path) {
                 try FileManager.default.removeItem(at: destURL)
             }
-            try FileManager.default.moveItem(at: file.fileURL, to: destURL)
+            try FileManager.default.copyItem(at: file.fileURL, to: destURL)
+            print("[PhoneSession] Saved audio to: \(destURL.lastPathComponent)")
 
             Task { @MainActor in
-                isTransferring = false
-                onAudioReceived?(destURL)
+                self.isTransferring = false
+                self.lastReceivedFile = fileName
+                self.onAudioReceived?(destURL)
             }
         } catch {
-            print("Failed to receive Watch audio: \(error)")
+            print("[PhoneSession] Failed to save Watch audio: \(error)")
         }
     }
 }
