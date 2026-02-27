@@ -2,7 +2,6 @@ import Foundation
 
 /// Generates structured meeting notes from a transcript using AI.
 /// Currently uses on-device heuristics. Will integrate Claude API for richer summaries.
-@MainActor
 final class AISummaryService: ObservableObject {
     @Published var isSummarizing = false
 

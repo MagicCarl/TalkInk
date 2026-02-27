@@ -2,7 +2,6 @@ import AVFoundation
 import Combine
 
 /// Handles audio recording on iPhone using AVAudioRecorder.
-@MainActor
 final class RecordingService: ObservableObject {
     @Published var isRecording = false
     @Published var recordingDuration: TimeInterval = 0
@@ -66,12 +65,10 @@ final class RecordingService: ObservableObject {
 
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self, let startTime = self.startTime else { return }
-                self.recordingDuration = Date().timeIntervalSince(startTime)
-                self.audioRecorder?.updateMeters()
-                self.audioLevel = self.audioRecorder?.averagePower(forChannel: 0) ?? -160
-            }
+            guard let self, let startTime = self.startTime else { return }
+            self.recordingDuration = Date().timeIntervalSince(startTime)
+            self.audioRecorder?.updateMeters()
+            self.audioLevel = self.audioRecorder?.averagePower(forChannel: 0) ?? -160
         }
     }
 

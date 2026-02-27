@@ -3,7 +3,6 @@ import Combine
 
 /// Handles speech-to-text transcription using Apple's Speech framework.
 /// Uses on-device recognition for privacy — no data leaves the device.
-@MainActor
 final class TranscriptionService: ObservableObject {
     @Published var isTranscribing = false
     @Published var progress: Double = 0

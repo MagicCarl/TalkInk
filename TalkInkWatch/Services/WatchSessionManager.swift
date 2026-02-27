@@ -3,9 +3,9 @@ import WatchConnectivity
 /// Manages WatchConnectivity on the Watch side.
 /// Transfers recorded audio files to the paired iPhone for transcription.
 final class WatchSessionManager: NSObject, ObservableObject, @unchecked Sendable {
-    @MainActor @Published var isTransferring = false
-    @MainActor @Published var isPhoneReachable = false
-    @MainActor @Published var transferError: String?
+    @Published var isTransferring = false
+    @Published var isPhoneReachable = false
+    @Published var transferError: String?
 
     private var session: WCSession?
 
@@ -20,7 +20,6 @@ final class WatchSessionManager: NSObject, ObservableObject, @unchecked Sendable
     }
 
     /// Transfer an audio file to the paired iPhone.
-    @MainActor
     func transferAudio(url: URL) {
         guard let session else {
             print("[WatchSession] No session available")
@@ -37,7 +36,7 @@ extension WatchSessionManager: WCSessionDelegate {
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         let reachable = session.isReachable
         print("[WatchSession] Activated: \(activationState.rawValue), reachable: \(reachable), error: \(String(describing: error))")
-        Task { @MainActor in
+        DispatchQueue.main.async {
             self.isPhoneReachable = reachable
         }
     }
@@ -45,22 +44,21 @@ extension WatchSessionManager: WCSessionDelegate {
     func sessionReachabilityDidChange(_ session: WCSession) {
         let reachable = session.isReachable
         print("[WatchSession] Reachability changed: \(reachable)")
-        Task { @MainActor in
+        DispatchQueue.main.async {
             self.isPhoneReachable = reachable
         }
     }
 
     func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: Error?) {
+        let errorMsg = error?.localizedDescription
         if let error {
             print("[WatchSession] Transfer FAILED: \(error)")
         } else {
             print("[WatchSession] Transfer completed successfully")
         }
-        Task { @MainActor in
+        DispatchQueue.main.async {
             self.isTransferring = false
-            if let error {
-                self.transferError = error.localizedDescription
-            }
+            self.transferError = errorMsg
         }
     }
 }

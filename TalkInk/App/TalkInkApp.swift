@@ -21,6 +21,15 @@ struct TalkInkApp: App {
             meetingStore: store
         )
 
+        // Wire up Watch audio handler
+        phone.onAudioReceived = { url in
+            DispatchQueue.main.async {
+                Task {
+                    await pipe.processWatchAudio(audioURL: url)
+                }
+            }
+        }
+
         _recordingService = StateObject(wrappedValue: recording)
         _phoneSessionManager = StateObject(wrappedValue: phone)
         _transcriptionService = StateObject(wrappedValue: transcription)
@@ -40,11 +49,6 @@ struct TalkInkApp: App {
                 .preferredColorScheme(.dark)
                 .task {
                     await pipeline.checkPermissions()
-                    phoneSessionManager.onAudioReceived = { url in
-                        Task { @MainActor in
-                            await pipeline.processWatchAudio(audioURL: url)
-                        }
-                    }
                 }
         }
     }

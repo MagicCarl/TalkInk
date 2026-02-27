@@ -4,8 +4,7 @@ import Speech
 
 /// Orchestrates the full meeting pipeline: audio → transcription → AI summary → storage.
 /// Central coordinator that connects RecordingService, TranscriptionService, AISummaryService, and MeetingStore.
-@MainActor
-final class MeetingPipeline: ObservableObject {
+final class MeetingPipeline: ObservableObject, @unchecked Sendable {
     @Published var permissionsGranted = false
     @Published var micPermission: PermissionStatus = .unknown
     @Published var speechPermission: PermissionStatus = .unknown

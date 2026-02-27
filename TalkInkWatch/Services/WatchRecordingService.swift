@@ -3,7 +3,6 @@ import WatchKit
 
 /// Records audio on Apple Watch using AVAudioRecorder with an extended runtime session
 /// to keep recording when the wrist drops.
-@MainActor
 final class WatchRecordingService: ObservableObject {
     @Published var isRecording = false
     @Published var duration: TimeInterval = 0
@@ -74,10 +73,8 @@ final class WatchRecordingService: ObservableObject {
 
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self, let startTime = self.startTime else { return }
-                self.duration = Date().timeIntervalSince(startTime)
-            }
+            guard let self, let startTime = self.startTime else { return }
+            self.duration = Date().timeIntervalSince(startTime)
         }
     }
 

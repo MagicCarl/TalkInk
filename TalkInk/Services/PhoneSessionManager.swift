@@ -4,12 +4,12 @@ import Combine
 /// Manages WatchConnectivity session on the iPhone side.
 /// Receives audio files from Apple Watch and triggers transcription pipeline.
 final class PhoneSessionManager: NSObject, ObservableObject, @unchecked Sendable {
-    @MainActor @Published var isWatchReachable = false
-    @MainActor @Published var isTransferring = false
-    @MainActor @Published var lastReceivedFile: String?
+    @Published var isWatchReachable = false
+    @Published var isTransferring = false
+    @Published var lastReceivedFile: String?
 
     private var session: WCSession?
-    @MainActor var onAudioReceived: (@Sendable (URL) -> Void)?
+    var onAudioReceived: ((URL) -> Void)?
 
     override init() {
         super.init()
@@ -22,7 +22,6 @@ final class PhoneSessionManager: NSObject, ObservableObject, @unchecked Sendable
     }
 
     /// Send a message to the Watch (e.g., to start/stop recording).
-    @MainActor
     func sendCommand(_ command: String) {
         guard let session, session.isReachable else { return }
         session.sendMessage(["command": command], replyHandler: nil)
@@ -33,7 +32,7 @@ extension PhoneSessionManager: WCSessionDelegate {
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         let reachable = session.isReachable
         print("[PhoneSession] Activated: \(activationState.rawValue), reachable: \(reachable), error: \(String(describing: error))")
-        Task { @MainActor in
+        DispatchQueue.main.async {
             self.isWatchReachable = reachable
         }
     }
@@ -50,7 +49,7 @@ extension PhoneSessionManager: WCSessionDelegate {
     func sessionReachabilityDidChange(_ session: WCSession) {
         let reachable = session.isReachable
         print("[PhoneSession] Reachability changed: \(reachable)")
-        Task { @MainActor in
+        DispatchQueue.main.async {
             self.isWatchReachable = reachable
         }
     }
@@ -71,7 +70,7 @@ extension PhoneSessionManager: WCSessionDelegate {
             try FileManager.default.copyItem(at: file.fileURL, to: destURL)
             print("[PhoneSession] Saved audio to: \(destURL.lastPathComponent)")
 
-            Task { @MainActor in
+            DispatchQueue.main.async {
                 self.isTransferring = false
                 self.lastReceivedFile = fileName
                 self.onAudioReceived?(destURL)

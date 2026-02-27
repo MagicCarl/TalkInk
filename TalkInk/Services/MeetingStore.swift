@@ -2,7 +2,6 @@ import Foundation
 import Combine
 
 /// Persists meetings to disk as JSON.
-@MainActor
 final class MeetingStore: ObservableObject {
     @Published var meetings: [Meeting] = []
 
