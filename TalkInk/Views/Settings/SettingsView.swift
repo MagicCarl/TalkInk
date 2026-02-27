@@ -13,7 +13,7 @@ struct SettingsView: View {
                 Section("Apple Watch") {
                     HStack {
                         Image(systemName: "applewatch")
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(Color.accentColor)
                         Text("Watch Status")
                         Spacer()
                         Text(phoneSessionManager.isWatchReachable ? "Connected" : "Not Connected")
@@ -25,7 +25,7 @@ struct SettingsView: View {
                 Section("Transcription") {
                     HStack {
                         Image(systemName: "waveform")
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(Color.accentColor)
                         Text("Engine")
                         Spacer()
                         Text("Apple Speech (On-Device)")
@@ -34,7 +34,7 @@ struct SettingsView: View {
 
                     HStack {
                         Image(systemName: "globe")
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(Color.accentColor)
                         Text("Language")
                         Spacer()
                         Text("English")
@@ -46,7 +46,7 @@ struct SettingsView: View {
                 Section("Data") {
                     HStack {
                         Image(systemName: "doc.text")
-                            .foregroundStyle(.accent)
+                            .foregroundStyle(Color.accentColor)
                         Text("Total Meetings")
                         Spacer()
                         Text("\(meetingStore.meetings.count)")

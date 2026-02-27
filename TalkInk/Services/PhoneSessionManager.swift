@@ -29,8 +29,9 @@ final class PhoneSessionManager: NSObject, ObservableObject {
 
 extension PhoneSessionManager: WCSessionDelegate {
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        let reachable = session.isReachable
         Task { @MainActor in
-            isWatchReachable = session.isReachable
+            isWatchReachable = reachable
         }
     }
 
@@ -40,8 +41,9 @@ extension PhoneSessionManager: WCSessionDelegate {
     }
 
     nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        let reachable = session.isReachable
         Task { @MainActor in
-            isWatchReachable = session.isReachable
+            isWatchReachable = reachable
         }
     }
 

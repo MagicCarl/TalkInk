@@ -42,7 +42,7 @@ struct TranscriptDetailView: View {
             // Meeting info
             HStack(spacing: 12) {
                 Image(systemName: meeting.source.iconName)
-                    .foregroundStyle(.accent)
+                    .foregroundStyle(Color.accentColor)
                 Text(meeting.date, style: .date)
                 Text("·")
                 Text(meeting.date, style: .time)
@@ -72,7 +72,7 @@ struct TranscriptDetailView: View {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "circle.fill")
                                 .font(.system(size: 6))
-                                .foregroundStyle(.accent)
+                                .foregroundStyle(Color.accentColor)
                                 .padding(.top, 6)
                             Text(point)
                                 .font(.body)

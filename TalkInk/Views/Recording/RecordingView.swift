@@ -46,20 +46,20 @@ struct RecordingView: View {
         ZStack {
             // Outer pulse ring
             Circle()
-                .stroke(recordingService.isRecording ? Color.red.opacity(0.3) : Color.accent.opacity(0.2), lineWidth: 3)
+                .stroke(recordingService.isRecording ? Color.red.opacity(0.3) : Color.accentColor.opacity(0.2), lineWidth: 3)
                 .frame(width: 200, height: 200)
                 .scaleEffect(recordingService.isRecording ? 1.1 : 1.0)
                 .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: recordingService.isRecording)
 
             // Inner circle
             Circle()
-                .fill(recordingService.isRecording ? Color.red.opacity(0.15) : Color.accent.opacity(0.1))
+                .fill(recordingService.isRecording ? Color.red.opacity(0.15) : Color.accentColor.opacity(0.1))
                 .frame(width: 180, height: 180)
 
             // Mic icon
             Image(systemName: recordingService.isRecording ? "waveform" : "mic.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(recordingService.isRecording ? .red : .accent)
+                .foregroundStyle(recordingService.isRecording ? .red : Color.accentColor)
                 .symbolEffect(.variableColor, isActive: recordingService.isRecording)
         }
     }
@@ -82,7 +82,7 @@ struct RecordingView: View {
             .padding(.vertical, 16)
             .background(
                 Capsule()
-                    .fill(recordingService.isRecording ? Color.red : Color.accent)
+                    .fill(recordingService.isRecording ? Color.red : Color.accentColor)
             )
         }
         .padding(.horizontal, 40)

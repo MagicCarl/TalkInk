@@ -9,7 +9,7 @@ struct WatchRecordingView: View {
             // Status icon
             Image(systemName: recordingService.isRecording ? "waveform.circle.fill" : "mic.circle.fill")
                 .font(.system(size: 44))
-                .foregroundStyle(recordingService.isRecording ? .red : .accent)
+                .foregroundStyle(recordingService.isRecording ? .red : Color.accentColor)
                 .symbolEffect(.variableColor, isActive: recordingService.isRecording)
 
             // Duration or status
@@ -37,7 +37,7 @@ struct WatchRecordingView: View {
             } label: {
                 Image(systemName: recordingService.isRecording ? "stop.fill" : "record.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(recordingService.isRecording ? .red : .accent)
+                    .foregroundStyle(recordingService.isRecording ? .red : Color.accentColor)
             }
             .buttonStyle(.plain)
             .disabled(sessionManager.isTransferring)

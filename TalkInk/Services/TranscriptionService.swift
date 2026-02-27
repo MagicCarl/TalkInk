@@ -43,28 +43,21 @@ final class TranscriptionService: ObservableObject {
         request.requiresOnDeviceRecognition = true
         request.shouldReportPartialResults = false
 
-        let result = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<SFSpeechRecognitionResult, Error>) in
+        let (fullText, segments) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(String, [TranscriptSegment]), Error>) in
             recognizer.recognitionTask(with: request) { result, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else if let result, result.isFinal {
-                    continuation.resume(returning: result)
+                    let text = result.bestTranscription.formattedString
+                    let segs = result.bestTranscription.segments.map { seg in
+                        TranscriptSegment(timestamp: seg.timestamp, text: seg.substring)
+                    }
+                    continuation.resume(returning: (text, segs))
                 }
             }
         }
 
-        let fullText = result.bestTranscription.formattedString
         currentTranscript = fullText
-
-        // Build segments from transcription segments
-        var segments: [TranscriptSegment] = []
-        for segment in result.bestTranscription.segments {
-            segments.append(TranscriptSegment(
-                timestamp: segment.timestamp,
-                text: segment.substring
-            ))
-        }
-
         return (fullText, segments)
     }
 }

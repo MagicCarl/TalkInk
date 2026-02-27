@@ -28,7 +28,7 @@ struct HomeView: View {
         VStack(spacing: 12) {
             Image(systemName: "waveform.circle.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
 
             Text("Your AI Meeting Assistant")
                 .font(.title3.bold())
@@ -91,7 +91,7 @@ struct StatPill: View {
         VStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
             Text(value)
                 .font(.headline)
             Text(label)
@@ -109,7 +109,7 @@ struct MeetingRow: View {
         HStack(spacing: 12) {
             Image(systemName: meeting.source.iconName)
                 .font(.title3)
-                .foregroundStyle(.accent)
+                .foregroundStyle(Color.accentColor)
                 .frame(width: 36)
 
             VStack(alignment: .leading, spacing: 4) {
