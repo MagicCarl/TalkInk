@@ -22,6 +22,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }
+
+            InfoView()
+                .tabItem {
+                    Label("Info", systemImage: "info.circle.fill")
+                }
         }
         .tint(Color.accentColor)
     }

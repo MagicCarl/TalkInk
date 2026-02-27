@@ -3,7 +3,7 @@ import WatchKit
 
 /// Records audio on Apple Watch using AVAudioRecorder with an extended runtime session
 /// to keep recording when the wrist drops.
-final class WatchRecordingService: ObservableObject {
+final class WatchRecordingService: ObservableObject, @unchecked Sendable {
     @Published var isRecording = false
     @Published var duration: TimeInterval = 0
 

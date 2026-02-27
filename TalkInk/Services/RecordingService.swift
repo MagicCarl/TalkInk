@@ -2,7 +2,7 @@ import AVFoundation
 import Combine
 
 /// Handles audio recording on iPhone using AVAudioRecorder.
-final class RecordingService: ObservableObject {
+final class RecordingService: ObservableObject, @unchecked Sendable {
     @Published var isRecording = false
     @Published var recordingDuration: TimeInterval = 0
     @Published var audioLevel: Float = 0

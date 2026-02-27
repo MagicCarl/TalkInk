@@ -16,8 +16,8 @@ struct SettingsView: View {
                             .foregroundStyle(Color.accentColor)
                         Text("Watch Status")
                         Spacer()
-                        Text(phoneSessionManager.isWatchReachable ? "Connected" : "Not Connected")
-                            .foregroundStyle(phoneSessionManager.isWatchReachable ? .green : .secondary)
+                        Text(watchStatusText)
+                            .foregroundStyle(watchStatusColor)
                     }
                 }
 
@@ -89,6 +89,26 @@ struct SettingsView: View {
             } message: {
                 Text("This will permanently delete all meetings, recordings, and transcripts. This cannot be undone.")
             }
+        }
+    }
+
+    private var watchStatusText: String {
+        if phoneSessionManager.isWatchPaired && phoneSessionManager.isWatchAppInstalled {
+            return "Connected"
+        } else if phoneSessionManager.isWatchPaired {
+            return "Paired (App Not Installed)"
+        } else {
+            return "Not Paired"
+        }
+    }
+
+    private var watchStatusColor: Color {
+        if phoneSessionManager.isWatchPaired && phoneSessionManager.isWatchAppInstalled {
+            return .green
+        } else if phoneSessionManager.isWatchPaired {
+            return .orange
+        } else {
+            return .secondary
         }
     }
 }

@@ -4,6 +4,8 @@ import Combine
 /// Manages WatchConnectivity session on the iPhone side.
 /// Receives audio files from Apple Watch and triggers transcription pipeline.
 final class PhoneSessionManager: NSObject, ObservableObject, @unchecked Sendable {
+    @Published var isWatchPaired = false
+    @Published var isWatchAppInstalled = false
     @Published var isWatchReachable = false
     @Published var isTransferring = false
     @Published var lastReceivedFile: String?
@@ -30,9 +32,13 @@ final class PhoneSessionManager: NSObject, ObservableObject, @unchecked Sendable
 
 extension PhoneSessionManager: WCSessionDelegate {
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        let paired = session.isPaired
+        let installed = session.isWatchAppInstalled
         let reachable = session.isReachable
-        print("[PhoneSession] Activated: \(activationState.rawValue), reachable: \(reachable), error: \(String(describing: error))")
+        print("[PhoneSession] Activated: \(activationState.rawValue), paired: \(paired), installed: \(installed), reachable: \(reachable), error: \(String(describing: error))")
         DispatchQueue.main.async {
+            self.isWatchPaired = paired
+            self.isWatchAppInstalled = installed
             self.isWatchReachable = reachable
         }
     }
