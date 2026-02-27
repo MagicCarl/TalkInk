@@ -28,9 +28,15 @@ struct ContentView: View {
 }
 
 #Preview {
+    let store = MeetingStore()
     ContentView()
         .environmentObject(RecordingService())
         .environmentObject(TranscriptionService())
-        .environmentObject(MeetingStore())
+        .environmentObject(store)
         .environmentObject(PhoneSessionManager())
+        .environmentObject(MeetingPipeline(
+            transcriptionService: TranscriptionService(),
+            summaryService: AISummaryService(),
+            meetingStore: store
+        ))
 }
