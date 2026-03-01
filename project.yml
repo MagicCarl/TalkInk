@@ -84,3 +84,20 @@ targets:
         CODE_SIGN_ENTITLEMENTS: TalkInkWatch/Resources/TalkInkWatch.entitlements
         GENERATE_INFOPLIST_FILE: NO
         TARGETED_DEVICE_FAMILY: "4"
+    dependencies:
+      - target: TalkInkWatchWidgets
+
+  TalkInkWatchWidgets:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - path: TalkInkWatchWidgets
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.carlandrews.talkink.watchkitapp.widgets
+        INFOPLIST_FILE: TalkInkWatchWidgets/Resources/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "4"
+        SWIFT_EMIT_LOC_STRINGS: YES

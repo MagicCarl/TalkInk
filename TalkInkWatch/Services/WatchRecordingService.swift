@@ -74,7 +74,8 @@ final class WatchRecordingService: ObservableObject, @unchecked Sendable {
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self, let startTime = self.startTime else { return }
-            self.duration = Date().timeIntervalSince(startTime)
+            let elapsed = Date().timeIntervalSince(startTime)
+            DispatchQueue.main.async { self.duration = elapsed }
         }
     }
 

@@ -66,9 +66,13 @@ final class RecordingService: ObservableObject, @unchecked Sendable {
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self, let startTime = self.startTime else { return }
-            self.recordingDuration = Date().timeIntervalSince(startTime)
+            let elapsed = Date().timeIntervalSince(startTime)
             self.audioRecorder?.updateMeters()
-            self.audioLevel = self.audioRecorder?.averagePower(forChannel: 0) ?? -160
+            let level = self.audioRecorder?.averagePower(forChannel: 0) ?? -160
+            DispatchQueue.main.async {
+                self.recordingDuration = elapsed
+                self.audioLevel = level
+            }
         }
     }
 

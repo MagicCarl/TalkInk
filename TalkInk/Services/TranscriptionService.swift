@@ -3,7 +3,7 @@ import Combine
 
 /// Handles speech-to-text transcription using Apple's Speech framework.
 /// Uses on-device recognition for privacy — no data leaves the device.
-final class TranscriptionService: ObservableObject {
+final class TranscriptionService: ObservableObject, @unchecked Sendable {
     @Published var isTranscribing = false
     @Published var progress: Double = 0
     @Published var currentTranscript = ""
@@ -29,13 +29,17 @@ final class TranscriptionService: ObservableObject {
             throw TranscriptionError.recognizerUnavailable
         }
 
-        isTranscribing = true
-        progress = 0
-        currentTranscript = ""
+        DispatchQueue.main.async { [self] in
+            isTranscribing = true
+            progress = 0
+            currentTranscript = ""
+        }
 
         defer {
-            isTranscribing = false
-            progress = 1.0
+            DispatchQueue.main.async { [self] in
+                isTranscribing = false
+                progress = 1.0
+            }
         }
 
         let request = SFSpeechURLRecognitionRequest(url: audioURL)
@@ -56,7 +60,7 @@ final class TranscriptionService: ObservableObject {
             }
         }
 
-        currentTranscript = fullText
+        DispatchQueue.main.async { [self] in currentTranscript = fullText }
         return (fullText, segments)
     }
 }

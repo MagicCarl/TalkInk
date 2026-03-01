@@ -27,26 +27,31 @@ final class MeetingPipeline: ObservableObject, @unchecked Sendable {
 
     func checkPermissions() async {
         // Microphone
+        var mic: PermissionStatus = .unknown
         if #available(iOS 17.0, *) {
             let micStatus = AVAudioApplication.shared.recordPermission
             switch micStatus {
             case .granted:
-                micPermission = .granted
+                mic = .granted
             case .denied:
-                micPermission = .denied
+                mic = .denied
             case .undetermined:
                 let granted = await AVAudioApplication.requestRecordPermission()
-                micPermission = granted ? .granted : .denied
+                mic = granted ? .granted : .denied
             @unknown default:
-                micPermission = .unknown
+                mic = .unknown
             }
         }
 
         // Speech recognition
         let speechGranted = await transcriptionService.requestAuthorization()
-        speechPermission = speechGranted ? .granted : .denied
+        let speech: PermissionStatus = speechGranted ? .granted : .denied
 
-        permissionsGranted = micPermission == .granted && speechPermission == .granted
+        DispatchQueue.main.async { [self] in
+            micPermission = mic
+            speechPermission = speech
+            permissionsGranted = mic == .granted && speech == .granted
+        }
     }
 
     // MARK: - Pipeline

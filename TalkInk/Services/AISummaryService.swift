@@ -2,13 +2,13 @@ import Foundation
 
 /// Generates structured meeting notes from a transcript using AI.
 /// Currently uses on-device heuristics. Will integrate Claude API for richer summaries.
-final class AISummaryService: ObservableObject {
+final class AISummaryService: ObservableObject, @unchecked Sendable {
     @Published var isSummarizing = false
 
     /// Generate summary, key points, and action items from a transcript.
     func generateNotes(from transcript: String) async throws -> (summary: String, keyPoints: [String], actionItems: [ActionItem]) {
-        isSummarizing = true
-        defer { isSummarizing = false }
+        DispatchQueue.main.async { [self] in isSummarizing = true }
+        defer { DispatchQueue.main.async { [self] in isSummarizing = false } }
 
         // TODO: Replace with Claude API call for production-quality summarization.
         // For now, use basic on-device extraction as a placeholder.
