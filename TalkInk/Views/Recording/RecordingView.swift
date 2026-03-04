@@ -20,9 +20,14 @@ struct RecordingView: View {
 
                     // Duration or processing state
                     if recordingService.isRecording {
-                        Text(formatDuration(recordingService.recordingDuration))
-                            .font(.system(size: 48, weight: .light, design: .monospaced))
-                            .foregroundStyle(.primary)
+                        // TimelineView updates every second independent of main thread
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            if let start = recordingService.recordingStartDate {
+                                Text(formatDuration(context.date.timeIntervalSince(start)))
+                                    .font(.system(size: 48, weight: .light, design: .monospaced))
+                                    .foregroundStyle(.primary)
+                            }
+                        }
 
                         audioLevelBar
                     } else if let id = currentMeetingID,
@@ -180,6 +185,8 @@ struct RecordingView: View {
     }
 
     private func stopRecording() {
+        // Capture duration BEFORE stopRecording() zeroes it
+        let recordedDuration = recordingService.recordingDuration
         guard let url = recordingService.stopRecording() else { return }
 
         let dateFormatter = DateFormatter()
@@ -187,7 +194,7 @@ struct RecordingView: View {
 
         var meeting = Meeting(
             title: "Meeting - \(dateFormatter.string(from: Date()))",
-            duration: recordingService.recordingDuration,
+            duration: recordedDuration,
             source: .iPhone,
             status: .transcribing
         )

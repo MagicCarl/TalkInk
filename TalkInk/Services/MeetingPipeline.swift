@@ -28,26 +28,24 @@ final class MeetingPipeline: ObservableObject, @unchecked Sendable {
     func checkPermissions() async {
         // Microphone
         var mic: PermissionStatus = .unknown
-        if #available(iOS 17.0, *) {
-            let micStatus = AVAudioApplication.shared.recordPermission
-            switch micStatus {
-            case .granted:
-                mic = .granted
-            case .denied:
-                mic = .denied
-            case .undetermined:
-                let granted = await AVAudioApplication.requestRecordPermission()
-                mic = granted ? .granted : .denied
-            @unknown default:
-                mic = .unknown
-            }
+        let micStatus = AVAudioApplication.shared.recordPermission
+        switch micStatus {
+        case .granted:
+            mic = .granted
+        case .denied:
+            mic = .denied
+        case .undetermined:
+            let granted = await AVAudioApplication.requestRecordPermission()
+            mic = granted ? .granted : .denied
+        @unknown default:
+            mic = .unknown
         }
 
         // Speech recognition
         let speechGranted = await transcriptionService.requestAuthorization()
         let speech: PermissionStatus = speechGranted ? .granted : .denied
 
-        DispatchQueue.main.async { [self] in
+        await MainActor.run {
             micPermission = mic
             speechPermission = speech
             permissionsGranted = mic == .granted && speech == .granted
@@ -59,37 +57,60 @@ final class MeetingPipeline: ObservableObject, @unchecked Sendable {
     /// Process an audio file through the full pipeline: transcribe → summarize → store.
     func processAudio(meetingID: UUID, audioURL: URL) async {
         // Step 1: Transcribe
-        updateMeetingStatus(id: meetingID, status: .transcribing)
+        await updateMeetingStatus(id: meetingID, status: .transcribing)
+
+        // Log audio file size for debugging watch transfer issues
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: audioURL.path),
+           let size = attrs[.size] as? Int {
+            print("[Pipeline] Audio file: \(audioURL.lastPathComponent), size: \(size) bytes")
+        }
 
         do {
-            let (transcript, segments) = try await transcriptionService.transcribe(audioURL: audioURL)
+            // Get actual audio duration from file
+            let asset = AVURLAsset(url: audioURL)
+            let audioDuration = try await asset.load(.duration).seconds
 
-            // Update with transcript
-            if var meeting = meetingStore.meetings.first(where: { $0.id == meetingID }) {
-                meeting.transcript = transcript
-                meeting.segments = segments
-                meeting.status = .summarizing
-                meetingStore.updateMeeting(meeting)
+            let (transcript, segments) = try await transcriptionService.transcribeLongAudio(audioURL: audioURL)
+            print("[Pipeline] Transcription complete: \(segments.count) segments, \(transcript.count) chars")
 
-                // Step 2: AI summarize
-                let notes = try await summaryService.generateNotes(from: transcript)
+            // Update with transcript and actual duration
+            guard var meeting = await meetingStore.meetings.first(where: { $0.id == meetingID }) else { return }
 
-                meeting.summary = notes.summary
-                meeting.keyPoints = notes.keyPoints
-                meeting.actionItems = notes.actionItems
-                meeting.status = .ready
+            meeting.transcript = transcript
+            meeting.segments = segments
+            if audioDuration.isFinite && audioDuration > 0 {
+                meeting.duration = audioDuration
+            }
+            meeting.status = .summarizing
+            await meetingStore.updateMeeting(meeting)
 
-                // Auto-generate title from first sentence of transcript
+            // Step 2: Generate structured notes
+            let notes = try await summaryService.generateNotes(from: transcript)
+
+            meeting.overview = notes.overview
+            meeting.topics = notes.topics
+            meeting.decisions = notes.decisions
+            meeting.actionItems = notes.actionItems
+            meeting.isAIGenerated = notes.isAIGenerated
+            meeting.status = .ready
+
+            // Also populate legacy fields for backward compatibility
+            meeting.summary = notes.overview
+
+            // Use AI-generated title if available, otherwise heuristic
+            if let aiTitle = notes.title, !aiTitle.isEmpty {
+                meeting.title = aiTitle
+            } else {
                 let autoTitle = generateTitle(from: transcript)
                 if !autoTitle.isEmpty {
                     meeting.title = autoTitle
                 }
-
-                meetingStore.updateMeeting(meeting)
             }
+
+            await meetingStore.updateMeeting(meeting)
         } catch {
-            print("Pipeline error: \(error)")
-            updateMeetingStatus(id: meetingID, status: .failed)
+            print("[Pipeline] Error for meeting \(meetingID): \(error.localizedDescription)")
+            await updateMeetingStatus(id: meetingID, status: .failed)
         }
     }
 
@@ -98,27 +119,57 @@ final class MeetingPipeline: ObservableObject, @unchecked Sendable {
         var meeting = Meeting(
             title: "Watch Recording",
             date: Date(),
-            duration: 0, // Will be updated after transcription
+            duration: 0,
             source: .appleWatch,
             status: .transcribing
         )
         meeting.audioFileName = audioURL.lastPathComponent
-        meetingStore.addMeeting(meeting)
+        await meetingStore.addMeeting(meeting)
 
         await processAudio(meetingID: meeting.id, audioURL: audioURL)
     }
 
+    /// Re-generate AI notes for a meeting that already has a transcript.
+    func regenerateNotes(meetingID: UUID) async {
+        guard var meeting = await meetingStore.meetings.first(where: { $0.id == meetingID }),
+              let transcript = meeting.transcript, !transcript.isEmpty else { return }
+
+        meeting.status = .summarizing
+        await meetingStore.updateMeeting(meeting)
+
+        do {
+            let notes = try await summaryService.generateNotes(from: transcript)
+
+            meeting.overview = notes.overview
+            meeting.topics = notes.topics
+            meeting.decisions = notes.decisions
+            meeting.actionItems = notes.actionItems
+            meeting.isAIGenerated = notes.isAIGenerated
+            meeting.summary = notes.overview
+            meeting.status = .ready
+
+            if let aiTitle = notes.title, !aiTitle.isEmpty {
+                meeting.title = aiTitle
+            }
+
+            await meetingStore.updateMeeting(meeting)
+        } catch {
+            print("[Pipeline] Regenerate failed: \(error.localizedDescription)")
+            meeting.status = .ready
+            await meetingStore.updateMeeting(meeting)
+        }
+    }
+
     // MARK: - Helpers
 
-    private func updateMeetingStatus(id: UUID, status: MeetingStatus) {
-        if var meeting = meetingStore.meetings.first(where: { $0.id == id }) {
+    private func updateMeetingStatus(id: UUID, status: MeetingStatus) async {
+        if var meeting = await meetingStore.meetings.first(where: { $0.id == id }) {
             meeting.status = status
-            meetingStore.updateMeeting(meeting)
+            await meetingStore.updateMeeting(meeting)
         }
     }
 
     private func generateTitle(from transcript: String) -> String {
-        // Use first meaningful sentence as title (up to 40 chars)
         let cleaned = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty else { return "" }
 
@@ -128,7 +179,6 @@ final class MeetingPipeline: ObservableObject, @unchecked Sendable {
         if trimmed.count <= 40 {
             return trimmed
         }
-        // Truncate at word boundary
         let truncated = String(trimmed.prefix(40))
         if let lastSpace = truncated.lastIndex(of: " ") {
             return String(truncated[..<lastSpace]) + "..."

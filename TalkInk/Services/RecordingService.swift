@@ -4,15 +4,20 @@ import Combine
 /// Handles audio recording on iPhone using AVAudioRecorder.
 final class RecordingService: ObservableObject, @unchecked Sendable {
     @Published var isRecording = false
-    @Published var recordingDuration: TimeInterval = 0
-    @Published var audioLevel: Float = 0
+    @Published var recordingStartDate: Date?
+    @Published var audioLevel: Float = -160
 
     private var audioRecorder: AVAudioRecorder?
-    private var timer: Timer?
-    private var startTime: Date?
+    private var levelTimer: Timer?
 
     private var documentsURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    }
+
+    /// Convenience: current duration computed from start date.
+    var recordingDuration: TimeInterval {
+        guard let start = recordingStartDate else { return 0 }
+        return Date().timeIntervalSince(start)
     }
 
     func startRecording() -> URL? {
@@ -41,8 +46,8 @@ final class RecordingService: ObservableObject, @unchecked Sendable {
             audioRecorder?.record()
 
             isRecording = true
-            startTime = Date()
-            startTimer()
+            recordingStartDate = Date()
+            startLevelTimer()
 
             return fileURL
         } catch {
@@ -56,29 +61,32 @@ final class RecordingService: ObservableObject, @unchecked Sendable {
         audioRecorder?.stop()
         audioRecorder = nil
         isRecording = false
-        stopTimer()
+        stopLevelTimer()
+        recordingStartDate = nil
 
         try? AVAudioSession.sharedInstance().setActive(false)
 
         return url
     }
 
-    private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self, let startTime = self.startTime else { return }
-            let elapsed = Date().timeIntervalSince(startTime)
-            self.audioRecorder?.updateMeters()
-            let level = self.audioRecorder?.averagePower(forChannel: 0) ?? -160
-            DispatchQueue.main.async {
-                self.recordingDuration = elapsed
+    /// Timer only for audio level metering (visual feedback), NOT for duration.
+    /// Reduced to 0.5s and only publishes when level changes meaningfully
+    /// to avoid overwhelming SwiftUI with redraws.
+    private func startLevelTimer() {
+        levelTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self, let rec = self.audioRecorder else { return }
+            rec.updateMeters()
+            let level = rec.averagePower(forChannel: 0)
+            // Only publish if level changed by more than 3dB to reduce redraws
+            if abs(level - self.audioLevel) > 3 {
                 self.audioLevel = level
             }
         }
     }
 
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
-        recordingDuration = 0
+    private func stopLevelTimer() {
+        levelTimer?.invalidate()
+        levelTimer = nil
+        audioLevel = -160
     }
 }

@@ -25,7 +25,17 @@ final class WatchSessionManager: NSObject, ObservableObject, @unchecked Sendable
             print("[WatchSession] No session available")
             return
         }
-        print("[WatchSession] Starting file transfer: \(url.lastPathComponent)")
+        // Log file size before transfer to verify recording captured audio
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+           let size = attrs[.size] as? Int {
+            print("[WatchSession] Starting transfer: \(url.lastPathComponent), size: \(size) bytes")
+            if size < 1000 {
+                print("[WatchSession] WARNING: File very small — may be empty recording")
+            }
+        } else {
+            print("[WatchSession] Starting transfer: \(url.lastPathComponent), size: UNKNOWN")
+        }
+
         isTransferring = true
         transferError = nil
         session.transferFile(url, metadata: ["type": "meeting_audio"])

@@ -28,5 +28,9 @@
 	<string>com.carlandrews.talkink</string>
 	<key>WKRunsIndependentlyOfCompanionApp</key>
 	<true/>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 </dict>
 </plist>

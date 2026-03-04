@@ -2,7 +2,8 @@ import Foundation
 import Combine
 
 /// Persists meetings to disk as JSON.
-final class MeetingStore: ObservableObject, @unchecked Sendable {
+@MainActor
+final class MeetingStore: ObservableObject {
     @Published var meetings: [Meeting] = []
 
     private let fileURL: URL
@@ -14,52 +15,40 @@ final class MeetingStore: ObservableObject, @unchecked Sendable {
     }
 
     func addMeeting(_ meeting: Meeting) {
-        onMain { [self] in
-            meetings.insert(meeting, at: 0)
+        meetings.insert(meeting, at: 0)
+        saveMeetings()
+    }
+
+    func updateMeeting(_ meeting: Meeting) {
+        if let index = meetings.firstIndex(where: { $0.id == meeting.id }) {
+            meetings[index] = meeting
             saveMeetings()
         }
     }
 
-    func updateMeeting(_ meeting: Meeting) {
-        onMain { [self] in
-            if let index = meetings.firstIndex(where: { $0.id == meeting.id }) {
-                meetings[index] = meeting
-                saveMeetings()
-            }
+    func deleteMeeting(_ meeting: Meeting) {
+        meetings.removeAll { $0.id == meeting.id }
+
+        // Clean up audio file
+        if let fileName = meeting.audioFileName {
+            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let audioURL = docs.appendingPathComponent(fileName)
+            try? FileManager.default.removeItem(at: audioURL)
         }
+
+        saveMeetings()
     }
 
-    func deleteMeeting(_ meeting: Meeting) {
-        onMain { [self] in
-            meetings.removeAll { $0.id == meeting.id }
-
-            // Clean up audio file
+    func deleteAllMeetings() {
+        for meeting in meetings {
             if let fileName = meeting.audioFileName {
                 let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 let audioURL = docs.appendingPathComponent(fileName)
                 try? FileManager.default.removeItem(at: audioURL)
             }
-
-            saveMeetings()
         }
-    }
-
-    func deleteAllMeetings() {
-        onMain { [self] in
-            for meeting in meetings {
-                if let fileName = meeting.audioFileName {
-                    let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                    let audioURL = docs.appendingPathComponent(fileName)
-                    try? FileManager.default.removeItem(at: audioURL)
-                }
-            }
-            meetings.removeAll()
-            saveMeetings()
-        }
-    }
-
-    private func onMain(_ work: @escaping @Sendable () -> Void) {
-        if Thread.isMainThread { work() } else { DispatchQueue.main.async(execute: work) }
+        meetings.removeAll()
+        saveMeetings()
     }
 
     private func saveMeetings() {

@@ -16,10 +16,17 @@ struct Meeting: Identifiable, Codable {
     var transcript: String?
     var segments: [TranscriptSegment]?
 
-    // AI-generated notes
+    // AI-generated notes (structured by topic like Otter/Fireflies/tl;dv)
+    var overview: String?
+    var topics: [DiscussionTopic]?
+    var decisions: [String]?
+    var actionItems: [ActionItem]?
+    var isAIGenerated: Bool?
+
+    // Legacy fields kept for backward compatibility with existing data
     var summary: String?
     var keyPoints: [String]?
-    var actionItems: [ActionItem]?
+    var keywords: [String]?
 
     init(
         id: UUID = UUID(),
@@ -35,6 +42,20 @@ struct Meeting: Identifiable, Codable {
         self.duration = duration
         self.source = source
         self.status = status
+    }
+}
+
+/// A discussion topic with a heading and bullet-point details.
+/// Mirrors how Fireflies/tl;dv group notes by subject.
+struct DiscussionTopic: Identifiable, Codable {
+    let id: UUID
+    var heading: String
+    var bulletPoints: [String]
+
+    init(id: UUID = UUID(), heading: String, bulletPoints: [String]) {
+        self.id = id
+        self.heading = heading
+        self.bulletPoints = bulletPoints
     }
 }
 

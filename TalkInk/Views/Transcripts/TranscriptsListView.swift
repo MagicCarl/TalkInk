@@ -33,7 +33,7 @@ struct TranscriptsListView: View {
     private var meetingList: some View {
         List {
             ForEach(meetingStore.meetings) { meeting in
-                NavigationLink(destination: TranscriptDetailView(meeting: meeting)) {
+                NavigationLink(destination: TranscriptDetailView(meetingID: meeting.id)) {
                     MeetingRow(meeting: meeting)
                 }
                 .listRowBackground(Color.clear)

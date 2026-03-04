@@ -49,10 +49,12 @@ struct ComplicationView: View {
             }
         case .accessoryInline:
             Label("TalkInk", systemImage: "mic.fill")
+        #if os(watchOS)
         case .accessoryCorner:
             Image(systemName: "mic.fill")
                 .font(.title3)
                 .widgetAccentable()
+        #endif
         @unknown default:
             Image(systemName: "mic.fill")
                 .widgetAccentable()
@@ -71,11 +73,19 @@ struct TalkInkComplication: Widget {
         }
         .configurationDisplayName("TalkInk")
         .description("Quick access to meeting recording.")
+        #if os(watchOS)
         .supportedFamilies([
             .accessoryCircular,
             .accessoryRectangular,
             .accessoryInline,
             .accessoryCorner
         ])
+        #else
+        .supportedFamilies([
+            .accessoryCircular,
+            .accessoryRectangular,
+            .accessoryInline
+        ])
+        #endif
     }
 }
